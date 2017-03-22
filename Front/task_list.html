@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<script src="js/mui.min.js"></script>
+    	<link href="css/mui.min.css" rel="stylesheet"/>
+	</head>
+	<body>
+		<header class="mui-bar mui-bar-nav">
+		    <a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		    <h1 class="mui-title">任务列表</h1>
+		    <a class="mui-btn mui-btn-link mui-pull-right" onclick="javascript:onNewTask()">新建</a>
+		</header>
+		<div class="mui-content">
+		    <ul id="task_list" class="mui-table-view">
+				<!--js 通过代码添加任务列表内的任务 -->
+		    </ul>
+		</div>
+	</body>
+</html>
+
+<script type="text/javascript">
+    mui.init({
+    	gestureConfig:{ tap: true, //默认为true 
+    					doubletap: true, //默认为false 
+    					longtap: true, //默认为false 
+    					swipe: true, //默认为true 
+    					drag: true, //默认为true 
+    					hold:false,//默认为false，不监听 
+    					release:false//默认为false，不监听 
+    				}
+    });
+	
+	//启动完成后，调用刷新任务列表
+    mui.plusReady(function() {  
+        var self = plus.webview.currentWebview();
+        notifiULList(self.tasks);
+    });
+
+	//刷新任务列表，数据来源是登录成功后传入的response
+	function notifiULList(tasks) {  
+        var datalist = tasks.tasks;
+        var doc = document;
+        var fragment = doc.createDocumentFragment();
+        var container = doc.getElementById("task_list");  
+		
+        mui.each(datalist, function(i, n) {  
+            notifiAndSetLiDetail(fragment, n);  
+        });  
+
+        container.appendChild(fragment);  
+    }
+	
+	//构建每一个任务信息的HTML
+	function notifiAndSetLiDetail(fragment, n) {  
+        var doc = document;
+        var li = doc.createElement("li");//任务条目
+        fragment.appendChild(li);
+        li.setAttribute("class", "mui-table-view-cell"); 
+        li.setAttribute("id", n.tid); 
+        
+        var div4 = doc.createElement("div");//左滑删除显示区域
+        li.appendChild(div4);
+        div4.setAttribute("class", "mui-slider-right mui-disabled");
+        var a = doc.createElement("a");//删除按钮
+        div4.appendChild(a);
+        a.setAttribute("class", "mui-btn mui-btn-red");
+        a.innerHTML = "删除";
+        
+        var div1 = doc.createElement("div");//任务信息显示区域
+        div1.setAttribute("class", "mui-slider-handle mui-table");
+        li.appendChild(div1);
+         
+        var div2 = doc.createElement("div");//任务名称和任务描述区域，包含在div1的左侧
+        div2.setAttribute("class", "mui-table-cell mui-col-xs-10");
+        div1.appendChild(div2);
+        
+        var div3 = doc.createElement("div");//任务进度和责任人区域，包含在div1的右侧
+		div3.setAttribute("class", "mui-table-cell mui-col-xs-2 mui-text-right");
+        div1.appendChild(div3);
+        
+        var h41 = doc.createElement("h4");//任务名称
+        h41.innerHTML = n.tname;
+        div2.appendChild(h41);
+        
+        var p1 = doc.createElement("p");//任务描述
+        p1.setAttribute("class", "mui-h6 mui-ellipsis");
+        p1.innerHTML = n.tdes;
+        div2.appendChild(p1);
+        
+        var h42 = doc.createElement("h4");//任务进度
+        h42.innerHTML = Math.round(parseFloat(n.tpct)*100) +"%";
+        div3.appendChild(h42);
+        
+        var p2 = doc.createElement("p");  //责任人
+        p2.setAttribute("class", "mui-h6 mui-ellipsis");
+        p2.innerHTML = getUserNameByID(n.tmid);
+        div3.appendChild(p2);
+    };
+	
+	//跳转到新建页面，新建任务的id为0
+	function onNewTask(){
+		var url = "task_new.html";
+		localStorage.setItem("task_adev","new");//
+	    plus.webview.create(url,'page_task_adev',{},{shane:"n", task_id:0}).show();
+	};
+	
+	//查看任务，任务id会被传入到查看界面
+	mui('#task_list').on('tap', '.mui-table-view-cell', function(event) {
+		var url = "task_new.html";
+		localStorage.setItem("task_adev","edit");//
+	    plus.webview.create(url,'page_task_adev',{},{shane:"v", task_id:this.id}).show();
+	});
+	
+	//左滑删除任务
+	mui('#task_list').on('tap', '.mui-btn', function(event) {
+		var elem = this;
+		var li = elem.parentNode.parentNode;
+		var task_id = li.getAttribute("id");
+		var btnArray = ['确认', '取消'];
+		mui.confirm('确认删除该条任务？', 'PMS', btnArray, function(e) {
+			if (e.index == 0) {
+				//li.parentNode.removeChild(li);
+				deleteTask(task_id);//调用删除任务的后台请求
+			} else {
+				setTimeout(function() {
+					mui.swipeoutClose(li);
+				}, 0);
+			}
+		});
+	});
+	
+	document.addEventListener('plusready', function(){
+		//console.log("所有plus api都应该在此事件发生后调用，否则会出现plus is undefined。");
+	});
+	
+	//
+	function deleteTask(taskID) {
+		//var url = 'http://192.168.16.42:8080/mybatis/user/test.do';
+		var url = 'http://192.168.16.114:8080/HelloWeb/deltask';
+		//发送数据
+		var data = {
+			tid: taskID,
+		};
+
+		mui.getJSON(url, data, callbackDeleteTask);
+	};
+		
+	//删除任务调用成功响应的回调函数
+	function callbackDeleteTask(response) {
+		//console.info(JSON.stringify(response));
+		if(response.status == "0000"){
+			taskId = response.tid;
+			mui(".mui-table-view-cell").each(function(){
+				if(this.getAttribute("id") == taskId){
+					this.parentNode.removeChild(this);
+					console.info("删除任务成功!")
+				}
+			})
+		}
+	};
+
+	function refreshChangedTask(){
+		var isNew = localStorage.getItem("task_adev_mode");
+		var task_id = localStorage.getItem("working_task_id");
+		console.info("开始调用refreshChangedTask... ...isNew = " + isNew + ",    task_id = " + task_id);
+		if(isNew == 'new'){
+			//console.info("在列表末尾增加一条记录");
+			var doc = document;
+	        var fragment = doc.createDocumentFragment();
+	        var container = doc.getElementById("task_list");
+	        var data = localStorage.getItem("changed_task");
+	        var ObjTask = JSON.parse(data);
+            notifiAndSetLiDetail(fragment, ObjTask);  
+	        container.appendChild(fragment); 
+		}else if(isNew == 'edit'){
+			//console.info("去列表中遍历id，并修改");
+			var data = localStorage.getItem("changed_task");
+	        var ObjTask = JSON.parse(data);
+			mui(".mui-table-view-cell").each(function(){
+				if(this.getAttribute("id") == task_id){
+					var divs = this.getElementsByTagName("div");//li有两个div，我们要操作第二个
+					var divs_task_info = divs[1].getElementsByTagName("div");
+					var task_name = divs_task_info[0].getElementsByTagName("h4");
+					task_name[0].innerHTML = ObjTask.tname;
+					var task_desc = divs_task_info[0].getElementsByTagName("p");
+					task_desc[0].innerHTML = ObjTask.tdes;
+					var task_process = divs_task_info[1].getElementsByTagName("h4");
+					task_process[0].innerHTML = Math.round(parseFloat(ObjTask.tpct)*100) +"%";
+					var task_owner = divs_task_info[1].getElementsByTagName("p");
+					task_owner[0].innerHTML = getUserNameByID(ObjTask.tmid);
+					//console.info("删除任务成功!")
+					return false;
+				}
+			})
+		}else{
+			console.info("task_adev状态不对，或者其他错误");
+		}
+		
+		//console.info("return false 相当于 break");
+		localStorage.setItem("task_adev_mode","no");//是否有操作，no表示没有操作，new表示新建，edit表示编辑，view表示查看
+		localStorage.setItem("working_task_id","0");
+	};
+	//根据用户id获取用户名称
+	function getUserNameByID(id) {
+		var jsonUsers = JSON.parse(localStorage.getItem("users"));
+		var rValue = "";	
+		mui.each(jsonUsers,function(index, item){
+			//console.info("item.id = "+ item.id + ", id = " + id);
+			if(item.id == id){
+				//console.info("Oh find it"+id);
+				rValue = item.name;
+				return false;
+			}
+		});
+		
+		//console.info("cannot find"+id);
+		return rValue;
+	};
+</script>

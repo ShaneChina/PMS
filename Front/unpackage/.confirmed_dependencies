@@ -1,0 +1,41 @@
+{
+  "task_new.html": {
+    "href": "task_new.html",
+    "resources": [
+      "js/mui.min.js",
+      "js/mui.picker.js",
+      "js/mui.poppicker.js",
+      "css/mui.min.css",
+      "css/mui.picker.css",
+      "css/mui.poppicker.css",
+      "css/myMobiStyle.css"
+    ],
+    "refer": [
+      "task_list.html"
+    ],
+    "priority": 0
+  },
+  "task_list.html": {
+    "href": "task_list.html",
+    "resources": [
+      "js/mui.min.js",
+      "css/mui.min.css"
+    ],
+    "refer": [
+      "task_new.html"
+    ],
+    "priority": 0
+  },
+  "index.html": {
+    "href": "index.html",
+    "resources": [
+      "js/mui.min.js",
+      "css/mui.min.css",
+      "css/myMobiStyle.css"
+    ],
+    "refer": [
+      "task_list.html"
+    ],
+    "priority": 0
+  }
+}

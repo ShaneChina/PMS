@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Hello MUI</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+		<link rel="stylesheet" href="css/mui.min.css">
+		<style>
+			html,body {
+				background-color: #efeff4;
+			}
+			.title{
+				margin: 20px 15px 10px;
+				color: #6d6d72;
+				font-size: 15px;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="mui-bar mui-bar-nav">
+		    <a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		    <h1 class="mui-title">代办</h1>
+		</header>
+		<div class="mui-content">
+			<ul id="todo_list" class="mui-table-view">
+				<!--js 通过代码添加任务列表内的任务 -->
+		    </ul>
+		</div>
+	</body>
+	<script src="js/mui.min.js"></script>
+	
+</html>
+
+<script>
+	mui.init({
+		swipeBack:true //启用右滑关闭功能
+	});
+	
+	//启动完成后，调用刷新任务列表
+    mui.plusReady(function() {  
+		var todos = {"todos": [
+					{ "id":"1" , "name":"任务：Sprint2需求确定" , "desc":"对Sprint2的需求进行PK" },
+					{ "id":"2" , "name":"任务：Sprint2交互设计" , "desc":"确定功能分布和交互细节" },
+					{ "id":"3" , "name":"任务：Sprint2界面布局" , "desc":"更佳功能分布，确定每个界面的mockup" },
+					{ "id":"4" , "name":"通知：Sprint2需求评审会议通知" , "desc":"2月28日周二 3:00PM 四楼会议室" },
+					{ "id":"4" , "name":"系统：Sprint1 bug fixing任务进度变更" , "desc":"2月28日周二 11:00AM 完成比例从78%修改为95%" }
+					]};
+        notifiULList(todos);
+    });
+    
+	//刷新任务列表，数据来源是登录成功后传入的response
+	function notifiULList(todos) {  
+        var datalist = todos.todos;
+        var doc = document;
+        var fragment = doc.createDocumentFragment();
+        var container = doc.getElementById("todo_list");  
+		
+        mui.each(datalist, function(i, n) {  
+            notifiAndSetLiDetail(fragment, n);  
+        });  
+
+        container.appendChild(fragment);  
+    }
+	
+	//构建每一个任务信息的HTML
+	function notifiAndSetLiDetail(fragment, n) {  
+        var doc = document;
+        var li = doc.createElement("li");//任务条目
+        fragment.appendChild(li);
+        li.setAttribute("class", "mui-table-view-cell"); 
+        li.setAttribute("id", n.id); 
+        
+        var div4 = doc.createElement("div");//左滑删除显示区域
+        li.appendChild(div4);
+        div4.setAttribute("class", "mui-slider-right mui-disabled");
+        var a = doc.createElement("a");//删除按钮
+        div4.appendChild(a);
+        a.setAttribute("class", "mui-btn mui-btn-red");
+        a.innerHTML = "删除";
+        
+        var div1 = doc.createElement("div");//任务信息显示区域
+        div1.setAttribute("class", "mui-slider-handle mui-table");
+        li.appendChild(div1);
+         
+        var div2 = doc.createElement("div");//任务名称和任务描述区域，包含在div1的左侧
+        div2.setAttribute("class", "mui-table-cell mui-col-xs-10");
+        div1.appendChild(div2);
+        
+        var h41 = doc.createElement("h4");//任务名称
+        h41.innerHTML = n.name;
+        div2.appendChild(h41);
+        
+        var p1 = doc.createElement("p");//任务描述
+        p1.setAttribute("class", "mui-h6 mui-ellipsis");
+        p1.innerHTML = n.desc;
+        div2.appendChild(p1);
+    };
+</script>
