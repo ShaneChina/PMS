@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link href="css/myMobiStyle.css" rel="stylesheet"/>
+		<style>
+			html,
+			body {
+				background-color: #efeff4;
+			}
+			.title {
+				padding: 20px 15px 10px;
+				color: #6d6d72;
+				font-size: 15px;
+				background-color: #fff;
+			}
+			
+			/*.mui-plus header.mui-bar {
+				display: none!important;
+			}*/
+			/*.mui-plus .mui-bar-nav~.mui-content {
+				padding: 0!important;
+			}*/
+			
+			.mui-plus .plus{
+				display: inline;
+			}
+			
+			.plus{
+				display: none;
+			}
+			
+			#topPopover {
+				position: fixed;
+				top: 16px;
+				right: 6px;
+			}
+			#topPopover .mui-popover-arrow {
+				left: auto;
+				right: 6px;
+			}
+			p {
+				text-indent: 22px;
+			}
+			span.mui-icon {
+				font-size: 14px;
+				color: #007aff;
+				margin-left: -15px;
+				padding-right: 10px;
+			}
+			.mui-popover {
+				height: 300px;
+			}
+			/*.mui-content {
+				padding: 10px;
+			}*/
+		</style>
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+		    <a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		    <h1 class="mui-title">项目</h1>
+		    <a class="mui-btn mui-btn-link mui-pull-right" onclick="javascript:onNewProject()">新建</a>
+		</header>
+		<div id="pullrefresh" class="mui-content mui-scroll-wrapper">
+			<div class="mui-scroll">
+				<div id="segmentedControl" class="mui-segmented-control">
+					<a class="mui-control-item mui-active" href="#item1">我正参与</a>
+					<a class="mui-control-item" href="#item2">我的关注</a>
+					<a class="mui-control-item" href="#item3">我已完成</a>
+					<a class="mui-control-item" href="#item3">全部项目</a>
+				</div>
+				<ul id="project_list" class="mui-table-view">
+				<!--js 通过代码添加任务列表内的任务 -->
+		       </ul>
+			</div>
+		</div>
+	</body>
+</html>		
+		
+<script src="js/mui.min.js"></script>
+	<script type="text/javascript">
+			mui.init({
+				swipeBack: false,
+				//上拉下滑监听
+				pullRefresh: {
+					container: '#pullrefresh',
+					down: {
+						callback: pulldownRefresh
+					},
+					up: {
+						contentrefresh: '正在加载...',
+						callback: pullupRefresh
+					}
+				},
+				//手势监听
+				gestureConfig:{ tap: true, //默认为true
+    					doubletap: true, //默认为false 
+    					longtap: true, //默认为false 
+    					swipe: true, //默认为true 
+    					drag: true, //默认为true 
+    					hold:false,//默认为false，不监听 
+    					release:false//默认为false，不监听 
+    				  },
+//  			 styles:{
+//      			top:'0px',//mui标题栏默认高度为45px；
+//      			bottom:'0px'//默认为0px，可不定义；
+//    				},
+			});
+			
+		//启动完成后，调用刷新项目列表
+    	mui.plusReady(function() {  
+        var self = plus.webview.currentWebview();
+        //发送请求
+        //var url='http://192.168.16.114:8080/HelloWeb/getProjectAllInfo';//靳立新的PC做后台
+        //var url = 'http://192.168.3.17:8080/HelloWeb20170308/getProjectAllInfo';//杨扬的PC做后台，家里无线
+        var url = 'http://192.168.16.27:8080/HelloWeb20170308/getProjectAllInfo';//杨扬的PC做后台,公司无线
+        //接收数据
+      	mui.getJSON(url, notifiULList);
+
+	     //测试代码
+		//console.info(response.status);
+		//console.info('response.projects:'+JSON.stringify(response.projects));
+		//notifiULList(response);
+    });
+
+	//刷新项目列表，数据来源是登录成功后传入的response
+        function notifiULList(response) {
+        datalist=response.projects;
+        var doc = document;
+        var fragment = doc.createDocumentFragment();
+        var container = doc.getElementById("project_list");  
+        console.info('datalist='+JSON.stringify(datalist));
+		
+        mui.each(datalist, function(i, n) {  
+            notifiAndSetLiDetail(fragment, n);  
+        });  
+
+        container.appendChild(fragment);  
+    }
+	
+	//构建每一个项目信息的HTML
+	function notifiAndSetLiDetail(fragment, n) { 
+		var doc = document;
+		var li = doc.createElement("li");//项目条目
+        fragment.appendChild(li);
+        li.setAttribute("class", "mui-table-view-cell"); 
+        li.setAttribute("id", n.id); 
+        
+        var div4 = doc.createElement("div");//左滑删除显示区域
+        li.appendChild(div4);
+        div4.setAttribute("class", "mui-slider-right mui-disabled");
+        var a = doc.createElement("a");//删除按钮
+        div4.appendChild(a);
+        a.setAttribute("class", "mui-btn mui-btn-red");
+        a.innerHTML = "删除";
+        
+        var div1 = doc.createElement("div");//项目信息显示区域
+        div1.setAttribute("class", "mui-slider-handle mui-table");
+        li.appendChild(div1);
+         
+        var div2 = doc.createElement("div");//项目名称和项目描述区域，包含在div1的左侧
+        //div2.setAttribute("class", "mui-table-cell mui-col-xs-10");
+        div2.setAttribute("class", "mui-table-cell");
+        div1.appendChild(div2);
+        
+        var div3 = doc.createElement("div");//项目进度和责任人区域，包含在div1的右侧
+		div3.setAttribute("class", "mui-table-cell mui-col-xs-6 mui-text-right");
+        div1.appendChild(div3);
+        
+        var h41 = doc.createElement("h4");//项目名称
+        h41.innerHTML = n.name;
+        div2.appendChild(h41);
+        
+        var p1 = doc.createElement("p");//项目概述
+        p1.setAttribute("class", "mui-h6 mui-ellipsis");
+        p1.innerHTML = n.overview;
+        div2.appendChild(p1);
+               
+        var p2 = doc.createElement("p");  //项目经理
+        p2.setAttribute("class", "mui-h4 mui-ellipsis");
+        p2.innerHTML = getUserNameByID(n.owner_id);
+        div3.appendChild(p2);
+        //console.info('n.owner_id='+n.owner_id);
+        //console.info('p2.innerHTML='+ JSON.stringify(p2.innerHTML));
+        
+        var h42 = doc.createElement("h6");//任务数
+      	h42.innerHTML = '总任务：'+n.tasksize;
+      	div3.appendChild(h42);
+    };	
+    
+			//mui事件，单击打开所分配的任务
+			mui("#project_list").on('tap','.mui-table-view-cell',function(event)
+			{
+				//打开任务详情 
+				mui.openWindow({ id:'task', url:'sub2-task-list-yoyo.html' }); 
+			})
+			
+			//mui事件，长按打开项目详情
+			mui(".mui-table-view").on('longtap','.mui-table-view-cell',function(event)
+			{
+				//打开项目详情 
+//				mui.openWindow({ id:'detail', url:'sub2-project-detail-yoyo.html' }); 
+				var url = "sub2-project-detail-yoyo.html";
+				localStorage.setItem("project_adev","edit");
+	    		plus.webview.create(url,'page_project_adev',{},{shane:"v", project_id:this.id}).show();
+			})
+			
+			//跳转到新建页面，新建项目的id为0
+			function onNewProject(){
+			var url = "sub2-project-detail-yoyo.html";
+			localStorage.setItem("project_adev","new");
+	    	plus.webview.create(url,'page_project_adev',{},{shane:"n", project_id:0}).show();
+	};
+	
+	//查看任务，任务id会被传入到查看界面
+	mui('#task_list').on('tap', '.mui-table-view-cell', function(event) {
+		var url = "task_new.html";
+		localStorage.setItem("task_adev","edit");//
+	    plus.webview.create(url,'page_task_adev',{},{shane:"v", task_id:this.id}).show();
+	});
+			
+			//左滑删除项目
+		mui('#project_list').on('tap', '.mui-btn', function(event) {
+		var elem = this;
+		var li = elem.parentNode.parentNode;
+		var project_id = li.getAttribute("id");
+		var btnArray = ['确认', '取消'];
+		mui.confirm('确认删除该条任务？', 'PMS', btnArray, function(e) {
+			if (e.index == 0) {
+				//li.parentNode.removeChild(li);
+				deleteProject(project_id);//调用删除任务的后台请求
+			} else {
+				setTimeout(function() {
+					mui.swipeoutClose(li);
+				}, 0);
+			}
+		});
+	});
+	
+	//删除项目函数
+	function deleteProject(projectID) {
+		//var url = 'http://192.168.16.114:8080/HelloWeb/deleteProjectById';//靳立新的PC做后台
+		//var url = 'http://192.168.3.17:8080/HelloWeb20170308/deleteProjectById';//杨扬的PC做后台，家里无线
+		var url = 'http://192.168.16.27:8080/HelloWeb20170308/deleteProjectById';//杨扬的PC做后台,公司无线
+		//发送数据
+		var data = {
+			project_id: projectID,
+		};
+
+		mui.getJSON(url, data, callbackDeleteProject);
+	};
+		
+	//删除任务调用成功响应的回调函数
+	function callbackDeleteProject(response) {
+		//console.info(JSON.stringify(response));
+		if(response.status == "0000"){
+			projectId = response.project_id;
+			mui(".mui-table-view-cell").each(function(){
+				if(this.getAttribute("id") == projectId){
+					this.parentNode.removeChild(this);
+					console.info("删除任务成功!")
+				}
+			})
+		}
+	};
+
+	function refreshChangedProject(){
+		var isNew = localStorage.getItem("project_adev_mode");
+		var project_id = localStorage.getItem("working_project_id");
+		console.info("开始调用refreshChangedProject... ...isNew = " + isNew + ",    project_id = " + project_id);
+		if(isNew == 'new'){
+			//console.info("在列表末尾增加一条记录");
+			var doc = document;
+	        var fragment = doc.createDocumentFragment();
+	        var container = doc.getElementById("project_list");
+	        var data = localStorage.getItem("changed_project");
+	        var ObjProject = JSON.parse(data);
+            notifiAndSetLiDetail(fragment, ObjProject);  
+	        container.appendChild(fragment); 
+		}else if(isNew == 'edit'){
+			//console.info("去列表中遍历id，并修改");
+			var data = localStorage.getItem("changed_project");
+	        var ObjProject = JSON.parse(data);
+			mui(".mui-table-view-cell").each(function(){
+				if(this.getAttribute("id") == project_id){
+					var divs = this.getElementsByTagName("div");//li有两个div，我们要操作第二个
+					var divs_project_info = divs[1].getElementsByTagName("div");
+					var project_name = divs_project_info[0].getElementsByTagName("h4");
+					project_name[0].innerHTML = ObjProject.name;
+					//var project_desc = divs_project_info[0].getElementsByTagName("p");
+					//project_desc[0].innerHTML = ObjProject.overview;
+					var project_overview = divs_project_info[0].getElementsByTagName("p");
+					project_overview[0].innerHTML = ObjProject.overview;
+					var project_owner = divs_project_info[1].getElementsByTagName("p");
+					project_owner[0].innerHTML = getUserNameByID(ObjProject.owner_id);
+					console.info(project_owner[0].innerHTML);
+					return false;
+				}
+			})
+		}else{
+			console.info("project_adev状态不对，或者其他错误");
+		}
+		
+		//console.info("return false 相当于 break");
+		localStorage.setItem("project_adev_mode","no");//是否有操作，no表示没有操作，new表示新建，edit表示编辑，view表示查看
+		localStorage.setItem("working_project_id","0");
+	};
+	
+	//发送请求到后台获取用户表信息并存到本地localStorage
+	{
+		//发送请求
+    	//var url='http://192.168.16.114:8080/HelloWeb/getUserAllInfo';//靳立新的PC做后台
+    	//var url = 'http://192.168.3.17:8080/HelloWeb20170308/getUserAllInfo';//杨扬的PC做后台，家里无线
+    	var url = 'http://192.168.16.27:8080/HelloWeb20170308/getUserAllInfo';//杨扬的PC做后台,公司无线
+    	
+  		//接收数据
+    	mui.getJSON(url, getUserName);
+    		
+   		function getUserName(users){
+			var jsonUsers = users;
+			//console.info('jsonUsers='+JSON.stringify(users));
+			localStorage.setItem("users",JSON.stringify(jsonUsers.users));//users={id,name}
+			//console.info('users='+JSON.stringify(jsonUsers.users));
+			//console.info('localStorage='+JSON.stringify(localStorage));
+		};
+	};
+	
+	//根据用户id获取用户名称
+	function getUserNameByID(id) {
+		//console.info('localStorage:'+JSON.stringify(localStorage));
+		var jsonUsers = JSON.parse(localStorage.getItem("users"));
+		var rValue = "";	
+		mui.each(jsonUsers,function(index, item){
+			//console.info("item.id = "+ item.id + ", id = " + id);
+			if(item.id == id){
+				//console.info("Oh find it"+id);
+				rValue = item.name;
+				return false;
+			}
+		});		
+		//console.info("cannot find"+id);
+		return rValue;
+	};
+	
+		/**
+			 * 下拉刷新具体业务实现
+			 */
+			function pulldownRefresh() {
+				setTimeout(function() {
+					var table = document.body.querySelector('.mui-table-view');
+					var cells = document.body.querySelectorAll('.mui-table-view-cell');
+					for (var i = cells.length, len = i + 3; i < len; i++) {
+						var li = document.createElement('li');
+						li.className = 'mui-table-view-cell';
+						li.innerHTML = '<a class="mui-navigate-right">Item ' + (i + 1) + '</a>';
+						//下拉刷新，新纪录插到最前面；
+						table.insertBefore(li, table.firstChild);
+					}
+					mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+				}, 1000);
+			};
+			
+			/**
+			 * 上拉加载具体业务实现
+			 */
+			var count = 0;
+			function pullupRefresh() {
+				setTimeout(function() {
+					mui('#pullrefresh').pullRefresh().endPullupToRefresh((++count > 2)); //参数为true代表没有更多数据了。
+					var table = document.body.querySelector('.mui-table-view');
+					var cells = document.body.querySelectorAll('.mui-table-view-cell');
+					for (var i = cells.length, len = i + 20; i < len; i++) {
+						var li = document.createElement('li');
+						li.className = 'mui-table-view-cell';
+						li.innerHTML = '<a class="mui-navigate-right">Item ' + (i + 1) + '</a>';
+						table.appendChild(li);
+					}
+				}, 1000);
+			};
+</script>

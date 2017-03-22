@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	    <meta charset="utf-8">
+	    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	    <title></title>
+	    <script src="js/mui.min.js"></script>
+	    <link href="css/mui.min.css" rel="stylesheet"/>
+	    <link href="css/myMobiStyle.css" rel="stylesheet"/>
+	</head>
+	<body>
+		<header class="mui-bar mui-bar-nav">
+		    <h1 class="mui-title">中邮软开 项目管理系统</h1>
+		</header>
+		<div class="mui-content">
+			<h5>用户名称：</h5>
+			<div class="mui-input-row">
+				<input id="userName" type="text" placeholder="请输入用户名">
+			</div>
+			<h5>密码：</h5>
+			<div class="mui-input-row mui-password">
+				<input id="password" type="password" class="mui-input-password" placeholder="请输入密码">
+			</div>
+			<button type="button" class="mui-btn mui-btn-block mui-btn-primary" onclick="javascript:onLogin()">登录</button>
+		</div>
+	</body>
+</html>
+<script type="text/javascript">
+	window.onload = function() {  
+        mui.init();
+		
+		mui.plusReady(function() {  
+			if(localStorage.userName){
+				mui("#userName")[0].value = localStorage.userName;
+			}
+        });
+    };
+    
+	document.addEventListener('plusready', function(){
+		//console.log("所有plus api都应该在此事件发生后调用，否则会出现plus is undefined。");
+	});
+
+	//用户登录，如果成功则跳转到任务列表页面
+	function onLogin(){
+		var userName = mui("#userName")[0].value;
+		var userPass = mui("#password")[0].value;
+		
+		//var url = 'http://192.168.16.114:8080/HelloWeb/login';//靳立新的PC做后台
+		//var url = 'http://192.168.3.17:8080/HelloWeb20170308/login';//杨扬的PC做后台,家里无线
+		var url = 'http://192.168.16.27:8080/HelloWeb20170308/login';//杨扬的PC做后台,公司
+		//发送数据
+		var data = {
+			name: userName,
+			password: userPass,
+		};	
+		mui.getJSON(url, data, callbackLogon);
+		
+		//测试代码
+		//var response = {"status":"0000","message":"登录成功，已显示全部任务数据","taskssize":3,"tasks":[{"tdes":"前后台设计","tfitm":"","tid":1,"tmanager":"李现恩","tmid":0,"tname":"详细设计","tpct":0.12,"tremark":"","tsttm":""},{"tdes":"高楼大厦","tfitm":"","tid":2,"tmanager":"靳立新","tmid":0,"tname":"画图","tpct":0.42,"tremark":"","tsttm":""},{"tdes":"天天向上","tfitm":"","tid":3,"tmanager":"杨扬","tmid":0,"tname":"学习","tpct":0.32,"tremark":"","tsttm":""}],"id":1,"name":"李现恩","userssize":5,"users":[{"id":1,"name":"李现恩","password":""},{"id":2,"name":"靳立新","password":""},{"id":3,"name":"杨扬","password":""},{"id":4,"name":"张三","password":""},{"id":5,"name":"李四","password":""}]};
+		//callbackLogon(response);
+	}
+	
+	//成功响应的回调函数
+	function callbackLogon(response) {
+		console.info(JSON.stringify(response));
+		var r = response;
+		if(r.status == "0000" || r.status == "0003"){
+			localStorage.setItem("userName", mui("#userName")[0].value);//把成功登陆了的用户名称保存下来，下次登陆时就不用再输入用户名了
+			//localStorage.setItem("users",JSON.stringify(r.users));//记录下用户列表，在任务编辑和新建时需要选择责任人。责任人就等于用户。
+			localStorage.setItem("user_id",JSON.stringify(r.id));//记录下用户列表，在任务编辑和新建时需要选择责任人。责任人就等于用户。
+			localStorage.setItem("task_adev_mode","no");//是否有操作，no表示没有操作，new表示新建，edit表示编辑，view表示查看
+			localStorage.setItem("working_task_id","0");//当前操作过的task_id号，0表示没有操作
+			//var url = "task_list.html";
+	   		//plus.webview.create(url,url,{},{tasks:response}).show();
+	   		
+	   		//登录到主界面
+	   		var url = "sub0-main.html";
+	   		plus.webview.create(url,url,{},{tasks:response}).show();
+		}else{
+			if(r.status == "0001"){
+				alert("用户名不存在");
+			}
+			if(r.status == "0002"){
+				alert("密码错误");
+			}
+		}
+	};
+</script>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<script src="js/mui.min.js"></script>
+		<script src="js/mui.picker.js"></script>
+		<script src="js/mui.poppicker.js"></script>
+			
+		<!--标准mui.css-->
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link href="css/mui.picker.css" rel="stylesheet" />
+		<link href="css/mui.poppicker.css" rel="stylesheet" />
+		<!--App自定义的css-->
+		<link rel="stylesheet" type="text/css" href="css/app.css"/>
+		<style>
+			html,
+			body {
+				background-color: #efeff4;
+
+			}
+			.mui-content{
+				padding-top: 0px;
+			}	
+			.mui-btn-block{
+				height: 40px;
+			}
+			/*.mui-input-row{
+				height:40px ;
+			}	*/
+		</style>
+	</head>
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+			<h1 class="mui-title">项目详情</h1>
+			 <a class="mui-btn mui-btn-link mui-pull-right" id="commitproject"></a>
+		</header>
+		<div id="pullrefresh" class="mui-content mui-scroll-wrapper">
+			<div class="mui-scroll">
+				<div id="segmentedControl" class="mui-segmented-control">
+					<a class="mui-control-item mui-active" href="#item1">项目详情</a>
+					<a class="mui-control-item" href="#item2">成本管理</a>
+					<a class="mui-control-item" href="#item3">绩效管理</a>
+					<a class="mui-control-item" href="#item3">风险管理</a>
+				</div>
+		
+		<div class="mui-content">
+		  <div class="mui-content-padded" style="margin: 5px;">
+				<h4>项目名称</h4>
+				<div class="mui-input-row">
+					<input id='projectName' type="text" class="edit-aera mui-input-clear" placeholder="请输入项目名称">
+				</div>
+				<div>
+					<h4><span style="float:left">项目负责人</span></h4>
+					<span id='userResult' style="float:right"></span>
+				</div>
+				<button id='showUserPicker' class="edit-aera mui-btn mui-btn-block" type='button'>请选择负责人 ...</button>
+				<h4>项目概述</h4>
+				<div class="mui-input-row" style="margin: 10px 5px;">
+					<textarea id="projectOverview" class="edit-aera" rows="1" placeholder="多行文本框"></textarea>
+				</div>
+				<h4>项目描述</h4>
+				<div class="mui-input-row" style="margin: 10px 5px;">
+					<textarea id="projectDesc" class="edit-aera" rows="5" placeholder="多行文本框"></textarea>
+				</div>
+				<div>
+		        	<h4>备注:</h4>
+					<div class="mui-input-row" style="margin: 10px 5px;">
+						<textarea id="projectNote" class="edit-aera" rows="5" placeholder="多行文本框"></textarea>
+					</div>
+		        </div>
+				<div>
+					<h4><span style="float:left">开始日期</span></h4>
+					<span id='startDateLable' style="float:right"></span>
+				</div>
+				<button id='startDateBtn' type="button" class="edit-aera mui-btn mui-btn-block">选择日期</button>
+
+				<div>
+					<h4><span style="float:left">结束日期</span></h4>
+					<span id='endDateLable' style="float:right"></span>
+				</div>
+				<button id='endDateBtn' type="button" class="edit-aera mui-btn mui-btn-block">选择日期</button>
+				<div>
+					<h4><span style="float:left">项目状态</span></h4>
+					<span id='projectStatus' style="float:right"></span>
+				</div>
+				<button id='showProjectStatusPicker' class="edit-aera mui-btn mui-btn-block" type='button'>请选择项目状态 ...</button>
+				
+				<!--<h4 style='margin-top:5px;'>当前进度:</h4> 
+		        <div class="mui-input-row mui-input-range field-contain">
+		            <span style="float:left">
+		                <input id='field-range-input' type="text" class="edit-aera" value='60'>
+		            </span>
+		            <span style="float:right">
+		                <input id='field-range' type="range" class="edit-aera" value="60" min="0" max="100" />
+		            </span>
+		        </div>  -->
+		</div>	
+		</div>
+		</div>
+	</div>
+	</body>
+</html>
+
+	<script>
+		mui.init(
+			{swipeBack: false,
+				beforeback:function(){
+			var list = plus.webview.getWebviewById('sub1-project-list-yoyo.html');
+			if(list){
+				list.evalJS("refreshChangedProject()");
+
+			}else{
+				console.info("父窗体找不到")
+			}
+			return true;
+			},
+			//手势监听
+			gestureConfig:{ tap: true, //默认为true 
+    					doubletap: true, //默认为false 
+    					longtap: true, //默认为false 
+    					swipe: true, //默认为true 
+    					drag: true, //默认为true 
+    					hold:false,//默认为false，不监听 
+    					release:false//默认为false，不监听 
+    		},			
+		});
+		
+		(function($, doc, $$) {
+		$.init();
+		$.ready(function() {
+			//1.初始化用户列表 userPicker
+			var userPicker = new $.PopPicker();
+			var jsonUsers = JSON.parse(localStorage.getItem("users"));
+			var jsonObj = [];
+			//1.1构建用户列表数据
+			mui.each(jsonUsers,function(index, item){
+				var user = {};
+				user.value = item.id;
+				user.text = item.name;
+				jsonObj.push(user);
+			});
+			//1.2设置用户列表数据
+			userPicker.setData(jsonObj);
+			//1.3给用户选择按钮注册事件响应函数
+			var showUserPickerButton = doc.getElementById('showUserPicker');
+			var userResult = doc.getElementById('userResult');
+			showUserPickerButton.addEventListener('tap', function(event) {
+				userPicker.show(function(items) {
+					userResult.innerText = items[0].text;
+					//返回 false 可以阻止选择框的关闭
+					//return false;
+				});
+			}, false);
+			
+			//status项目状态选择器
+			var projectStatusPicker = new mui.PopPicker();
+ 			projectStatusPicker.setData([{value:'P',text:'进行中'},{value:'F',text:'已完成'},
+ 			{value:'D',text:'已删除'}]);
+ 			var showProjectStatusPickerButton = doc.getElementById('showProjectStatusPicker');
+			var projectStatus = doc.getElementById('projectStatus');
+			showProjectStatusPickerButton.addEventListener('tap', function(event) {
+				projectStatusPicker.show(function(items) {
+					projectStatus.innerText = items[0].text;
+					projectStatus.innerValue = items[0].value;
+					console.info("projectStatus.innerValue="+projectStatus.innerValue);
+				});
+			}, false);
+			
+			//如果是查看项目详细信息，根据project的id，从数据库中查询出该project的详细信息，初始化界面中的内容
+			//根据页面状态使能编辑按钮
+			var self = plus.webview.currentWebview();
+			changeMode(self.shane);
+			if(self.shane == 'v'){
+				refreshProject(self.project_id);
+			}
+		});
+		
+		//设置全局beforeSend
+		$.ajaxSettings.beforeSend = function(xhr, setting) {
+			//beforeSend演示,也可在$.ajax({beforeSend:function(){}})中设置单个Ajax的beforeSend
+			console.log('beforeSend:::' + JSON.stringify(setting));
+		};
+		
+		//设置全局complete
+		$.ajaxSettings.complete = function(xhr, status) {
+			console.log('complete:::' + status);
+		};
+		
+		//发送请求按钮的点击事件
+		document.getElementById("commitproject").addEventListener('tap', function() {
+			var self = plus.webview.currentWebview();
+			if(self.shane == 'v'){
+				self.shane = 'e';
+			}else{
+				if(self.shane == 'n'){
+					createProject();
+				}else{
+					updateProject(self.project_id);
+				}
+				self.shane = 'v';
+			}
+			
+			changeMode(self.shane);
+		});
+	})(mui, document);
+			
+    //监听input事件，获取range的value值，也可以直接element.value获取该range的值
+    var rangeList = document.querySelectorAll('input[type="range"]');
+    for(var i=0,len=rangeList.length;i<len;i++){
+        rangeList[i].addEventListener('input',function(){
+            if(this.id.indexOf('field')>=0){
+                document.getElementById(this.id+'-input').value = this.value;
+            }else{
+                document.getElementById(this.id+'-val').innerHTML = this.value;
+            }
+        });
+    }
+	
+//  	document.getElementById('field-range-input').addEventListener('input',function(){
+//      document.getElementById('field-range').value = this.value;
+//  });
+	    
+    var startDate = document.getElementById("startDateLable");
+	var endDate = document.getElementById("endDateLable");	
+	document.getElementById("startDateBtn").addEventListener('tap', function() {
+		var dDate = new Date();
+		dDate.setFullYear(2017, 1, 20);
+		var minDate = new Date();
+		minDate.setFullYear(2010, 0, 1);
+		var maxDate = new Date();
+		maxDate.setFullYear(2019, 11, 31);
+		plus.nativeUI.pickDate(function(e) {
+			var d = e.date;
+			startDate.innerText = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+		}, function(e) {
+			startDate.innerText = "您没有选择日期";
+		}, {
+			title: "请选择日期",
+			date: dDate,
+			minDate: minDate,
+			maxDate: maxDate
+		});
+	})
+	
+	document.getElementById("endDateBtn").addEventListener('tap', function() {
+		var dDate = new Date();
+		dDate.setFullYear(2017, 1, 20);
+		var minDate = new Date();
+		minDate.setFullYear(2010, 0, 1);
+		var maxDate = new Date();
+		maxDate.setFullYear(2019, 11, 31);
+		plus.nativeUI.pickDate(function(e) {
+			var d = e.date;
+			endDate.innerText = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+		}, function(e) {
+			endDate.innerText = "您没有选择日期";
+		}, {
+			title: "请选择日期",
+			date: dDate,
+			minDate: minDate,
+			maxDate: maxDate
+		});
+	});
+	
+	//根据project_id从数据库中获取该项目的详细信息
+	function refreshProject(project_id){
+		//var url = 'http://192.168.3.17:8080/HelloWeb20170308/getProjectById';//杨扬的PC做后台，家里无线
+		var url = 'http://192.168.16.27:8080/HelloWeb20170308/getProjectById';//杨扬的PC做后台，公司无线
+		
+
+		//发送数据
+		var data = {
+			project_id: project_id,
+		};
+		//接收数据
+		mui.getJSON(url, data, callbackRefreshProject);
+		
+		//测试代码
+        //var response = {"status":"0000","message":"查询项目成功",
+		//			"project":{"pdes":"前端界面编程","pfitm":"2019-08-11","pid":9,"pmid":3,"pname":"项目管理系统","ppct":0.48,"premark":"备注信息","psttm":"2017-02-03"}};
+		//callbackRefreshProject(response);
+	};
+	
+	//刷新任务界面调用成功响应的回调函数
+	function callbackRefreshProject(response) {
+		console.info("callbackRefreshProject="+JSON.stringify(response));
+//		console.info("response.status="+response.status);
+//		console.info("response.project="+response.project);
+		if(response.status == "0000"){
+			mui("#projectName")[0].value = response.project.name;//项目名称
+			mui("#userResult")[0].innerHTML = getUserNameByID(response.project.owner_id);//项目负责人
+			mui("#projectOverview")[0].innerHTML = response.project.overview;//项目概述
+			mui("#projectDesc")[0].innerHTML = response.project.description;//项目描述
+			mui("#projectNote")[0].innerHTML = response.project.remark;//备注
+			mui("#startDateLable")[0].innerHTML = response.project.start_time;//开始日期
+			mui("#endDateLable")[0].innerHTML = response.project.finish_time;//结束日期
+			//mui("#projectStatus")[0].innerHTML = response.project.status;//项目状态
+			if(response.project.status=='P'){
+				mui("#projectStatus")[0].innerHTML="进行中";
+			}else if(response.project.status=='F'){
+				mui("#projectStatus")[0].innerHTML="已完成";
+			}else if(response.project.status=='D'){
+				mui("#projectStatus")[0].innerHTML="已删除";
+			}
+			//mui("#projectStatus")[0].innerValue = response.project.status;//项目状态
+			//mui("#field-range-input")[0].value = parseFloat(response.project.ppct) * 100;
+			//mui("#field-range")[0].value = parseFloat(response.project.ppct) * 100;
+		}else{
+			alert(response.status + " : " + response.message);
+		}
+	};
+
+	function updateProject(project_id){
+		var id = parseInt(project_id);
+		var name = mui("#projectName")[0].value;
+		var owner = mui("#userResult")[0].innerHTML;
+		var ownerId = parseInt(getUserIDByName(owner));
+		var overview = mui("#projectOverview")[0].value;
+		var desc = mui("#projectDesc")[0].value;
+		var note = mui("#projectNote")[0].value;
+		var startDate = mui("#startDateLable")[0].innerHTML;
+		var endDate = mui("#endDateLable")[0].innerHTML;
+		//var status = mui("#projectStatus")[0].innerHTML;//项目状态
+		var status = mui("#projectStatus")[0].innerValue; //项目状态
+		//var progress = parseFloat(mui("#field-range-input")[0].value)/100;
+		
+		//var url = 'http://192.168.3.17:8080/HelloWeb20170308/updateProjectById';//杨扬的PC做后台，家里无线
+		var url = 'http://192.168.16.27:8080/HelloWeb20170308/updateProjectById';//杨扬的PC做后台，公司无线
+		//发送数据
+		var data = {
+			project_id: id,//项目号
+			project_name: name,//项目名
+			project_overview:overview,//项目概述
+			project_description: desc,//项目描述
+			project_owner_id: ownerId,//项目经理
+			project_start_time: startDate,//开始时间
+			project_finish_time: endDate,//结束时间
+			project_remark: note,//备注			
+			project_status: status,//项目状态
+		};
+
+		console.info('updateProjectByIdBeforeSend'+JSON.stringify(data));
+		mui.getJSON(url, data, callbackUpdateProject);
+		//测试代码
+		//console.info("更新了任务的数据并且后台正确返回");
+		//var response = {"status":"0000","message":"查询任务成功","project":{"pdes":"高楼大厦a","pfitm":"2019-08-11","pid":9,"pmid":3,"pname":"画图a","ppct":0.48,"premark":"备注信息","psttm":"2017-02-03"}};
+		//callbackUpdateProject(response);
+	};
+	
+	//刷新任务界面调用成功响应的回调函数
+	function callbackUpdateProject(response) {
+		console.info("callbackUpdateProject" + JSON.stringify(response));
+		if(response.status == "0000"){
+			if(localStorage.getItem("project_adev_mode") == 'no'){
+				localStorage.setItem("project_adev_mode","edit");//是否有操作，no表示没有操作，new表示新建，edit表示编辑，view表示查看
+				localStorage.setItem("working_project_id",response.project.id);
+				console.info("设置list页面更新标志project_adev = edit, project_id = " + response.project.id);
+			}else{
+				console.info("标志已经是new或者edit，不用再设置");
+			}
+			localStorage.setItem("changed_project",JSON.stringify(response.project));
+		}else{
+			alert(response.status + " : " + response.message);
+		}
+	};
+	
+	function createProject(){
+		var name = mui("#projectName")[0].value;
+		var owner = mui("#userResult")[0].innerHTML;
+		var ownerId = parseInt(getUserIDByName(owner));
+		var overview = mui("#projectOverview")[0].value;
+		var desc = mui("#projectDesc")[0].value;
+		var note = mui("#projectNote")[0].value;
+		var startDate = mui("#startDateLable")[0].innerHTML;
+		var endDate = mui("#endDateLable")[0].innerHTML;
+		var status = mui("#projectStatus")[0].innerValue;
+		//var progress = parseFloat(mui("#field-range-input")[0].value)/100;
+		
+		//var url = 'http://192.168.3.17:8080/HelloWeb20170308//createProject';//杨扬的PC做后台，家里无线
+		var url = 'http://192.168.16.27:8080/HelloWeb20170308//createProject';//杨扬的PC做后台，公司无线
+		//var url = 'http://192.168.16.114:8080/HelloWeb//createProject';//靳立新的PC做后台，公司无线
+		//发送数据
+		var data = {
+			project_name: name,
+			project_overview:overview,//项目概述
+			project_description:desc,
+			project_owner_id: ownerId,
+			project_start_time: startDate,
+			project_finish_time:endDate,		
+			project_status:status,//项目状态
+			project_create_id:localStorage.getItem("user_id"),//项目创建人
+			project_remark: note,	
+		};
+		//接收数据
+		mui.getJSON(url, data, callbackCreateProject);
+
+		//测试代码
+		//console.info("新建了任务的数据并且后台正确返回");
+		//var response = {"status":"0000","message":"查询项目成功","project":{"pdes":"高楼大厦","pfitm":"2019-08-11","pid":9,"pmid":2,"pname":"画图","ppct":0.42,"premark":"备注信息","psttm":"2017-02-03"}};
+		//callbackCreateProject(response);
+	};
+	
+	//刷新任务界面调用成功响应的回调函数
+	function callbackCreateProject(response) {
+		//console.info(JSON.stringify(response));
+		if(response.status == "0000"){
+			var self = plus.webview.currentWebview();
+			self.project_id = response.project.id;
+			localStorage.setItem("project_adev_mode","new");//是否有操作，no表示没有操作，new表示新建，edit表示编辑，view表示查看
+			localStorage.setItem("working_project_id",response.project.pid);
+			localStorage.setItem("changed_project",JSON.stringify(response.project));
+			console.info("设置list页面更新标志project_adev = new, project_id = " + response.project.id);
+		}else{
+			alert(response.status + " : " + response.message);
+		}
+	};
+		
+	function changeMode(currentMode){
+		console.info("当前状态是:" + currentMode);
+		//v表示是查看任务信息
+		if(currentMode == "v"){
+			mui("#commitproject")[0].innerHTML = "编辑";
+			mui(".edit-aera").each(function(){
+				this.setAttribute("disabled","true");
+			})
+		}
+		//n表示是新建任务
+		if(currentMode == "n" || currentMode == "e"){
+			mui("#commitproject")[0].innerHTML = "提交";
+			mui(".edit-aera").each(function(){
+				this.removeAttribute("disabled");
+			})
+		}
+	}
+
+	//
+	function getUserNameByID(id) {
+		var jsonUsers = JSON.parse(localStorage.getItem("users"));
+		var rValue = "";	
+		mui.each(jsonUsers,function(index, item){
+			if(item.id == id){
+				rValue = item.name;
+				return false;
+			}
+		});
+		
+		return rValue;
+	};
+	
+	function getUserIDByName(name) {
+		var jsonUsers = JSON.parse(localStorage.getItem("users"));
+		var rValue = "";	
+		mui.each(jsonUsers,function(index, item){
+			if(item.name == name){
+				rValue = item.id;
+				return false;
+			}
+		});
+		
+		return rValue;
+	};
+		
+		
+		
+		
+		mui('.mui-scroll-wrapper').scroll();
+			mui('body').on('shown', '.mui-popover', function(e) {
+				//console.log('shown', e.detail.id);//detail为当前popover元素
+			});
+			mui('body').on('hidden', '.mui-popover', function(e) {
+				//console.log('hidden', e.detail.id);//detail为当前popover元素
+			});
+		
+		window.addEventListener('toggle', function(event) {
+			if (event.target.id === 'M_Toggle') {
+				var isActive = event.detail.isActive;
+				var table = document.querySelector('.mui-table-view');
+				var card = document.querySelector('.mui-card');
+				if (isActive) {
+					card.appendChild(table);
+					card.style.display = '';
+				} else {
+					var content = document.querySelector('.mui-content');
+					content.insertBefore(table, card);
+					card.style.display = 'none';
+				}
+			}
+		});
+	</script>

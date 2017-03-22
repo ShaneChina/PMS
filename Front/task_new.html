@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<script src="js/mui.min.js"></script>
+		<script src="js/mui.picker.js"></script>
+		<script src="js/mui.poppicker.js"></script>
+    	<link href="css/mui.min.css" rel="stylesheet"/>
+		<!--App自定义的css-->
+		<link rel="stylesheet" type="text/css" href="../css/app.css" />
+		<link href="css/mui.picker.css" rel="stylesheet" />
+		<link href="css/mui.poppicker.css" rel="stylesheet" />
+		<link href="css/myMobiStyle.css" rel="stylesheet"/>
+	</head>
+	<body>
+		<header class="mui-bar mui-bar-nav">
+		    <a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		    <h1 class="mui-title" id="title"></h1>
+		    <a class="mui-btn mui-btn-link mui-pull-right" id="committask"></a>
+		</header>
+		<div class="mui-content">
+			<div class="mui-content-padded" style="margin: 5px;">
+				<h4>任务名称:</h4>
+				<div class="mui-input-row">
+					<input id='taskName' type="text" class="edit-aera mui-input-clear" placeholder="请输入任务名称">
+				</div>
+				<div>
+					<h4><span style="float:left">任务负责人:</span></h4>
+					<span id='userResult' style="float:right"></span>
+				</div>
+
+				<button id='showUserPicker' class="edit-aera mui-btn mui-btn-block" type='button'>请选择负责人 ...</button>
+				<h4>任务描述:</h4>
+				<div class="mui-input-row" style="margin: 10px 5px;">
+					<textarea id="taskDesc" class="edit-aera" rows="5" placeholder="多行文本框"></textarea>
+				</div>
+				<div>
+		        	<h4>备注:</h4>
+					<div class="mui-input-row" style="margin: 10px 5px;">
+						<textarea id="taskNote" class="edit-aera" rows="5" placeholder="多行文本框"></textarea>
+					</div>
+		        </div>
+				<div>
+					<h4><span style="float:left">开始日期</span></h4>
+					<span id='startDateLable' style="float:right"></span>
+				</div>
+				<button id='startDateBtn' type="button" class="edit-aera mui-btn mui-btn-block">选择日期</button>
+
+				<div>
+					<h4><span style="float:left">结束日期</span></h4>
+					<span id='endDateLable' style="float:right"></span>
+				</div>
+				<button id='endDateBtn' type="button" class="edit-aera mui-btn mui-btn-block">选择日期</button>
+				<h4 style='margin-top:5px;'>当前进度:</h4> 
+		        <div class="mui-input-row mui-input-range field-contain">
+		            <span style="float:left">
+		                <input id='field-range-input' type="text" class="edit-aera" value='60'>
+		            </span>
+		            <span style="float:right">
+		                <input id='field-range' type="range" class="edit-aera" value="60" min="0" max="100" />
+		            </span>
+		        </div>
+			</div>
+		</div>
+	</body>
+</html>
+<script>
+	mui.init({
+		swipeBack:true, //启用右滑关闭功能
+		beforeback:function(){
+			var list = plus.webview.getWebviewById('task_list.html');
+			if(list){
+				list.evalJS("refreshChangedTask()");
+			}else{
+				console.info("父窗体找不到")
+			}
+			return true;
+		}
+	});
+		
+	(function($, doc, $$) {
+		$.init();
+		$.ready(function() {
+			//1.初始化用户列表 userPicker
+			var userPicker = new $.PopPicker();
+			var jsonUsers = JSON.parse(localStorage.getItem("users"));
+			var jsonObj = [];
+			//1.1构建用户列表数据
+			mui.each(jsonUsers,function(index, item){
+				var user = {};
+				user.value = item.id;
+				user.text = item.name;
+				jsonObj.push(user);
+			});
+			//1.2设置用户列表数据
+			userPicker.setData(jsonObj);
+			//1.3给用户选择按钮注册事件响应函数
+			var showUserPickerButton = doc.getElementById('showUserPicker');
+			var userResult = doc.getElementById('userResult');
+			showUserPickerButton.addEventListener('tap', function(event) {
+				userPicker.show(function(items) {
+					userResult.innerText = items[0].text;
+					//返回 false 可以阻止选择框的关闭
+					//return false;
+				});
+			}, false);
+			
+			//如果是查看任务详细信息，根据task的id，从数据库中查询出该task的详细信息，初始化界面中的内容
+			//根据页面状态使能编辑按钮
+			var self = plus.webview.currentWebview();
+			changeMode(self.shane);
+			if(self.shane == 'v'){
+				refreshTask(self.task_id);
+			}
+		});
+		
+		//设置全局beforeSend
+		$.ajaxSettings.beforeSend = function(xhr, setting) {
+			//beforeSend演示,也可在$.ajax({beforeSend:function(){}})中设置单个Ajax的beforeSend
+			console.log('beforeSend:::' + JSON.stringify(setting));
+		};
+		
+		//设置全局complete
+		$.ajaxSettings.complete = function(xhr, status) {
+			console.log('complete:::' + status);
+		};
+		
+		//发送请求按钮的点击事件
+		document.getElementById("committask").addEventListener('tap', function() {
+			var self = plus.webview.currentWebview();
+			if(self.shane == 'v'){
+				self.shane = 'e';
+			}else{
+				if(self.shane == 'n'){
+					createTask();
+				}else{
+					updateTask(self.task_id);
+				}
+				self.shane = 'v';
+			}
+			
+			changeMode(self.shane);
+		});
+	})(mui, document);
+			
+    //监听input事件，获取range的value值，也可以直接element.value获取该range的值
+    var rangeList = document.querySelectorAll('input[type="range"]');
+    for(var i=0,len=rangeList.length;i<len;i++){
+        rangeList[i].addEventListener('input',function(){
+            if(this.id.indexOf('field')>=0){
+                document.getElementById(this.id+'-input').value = this.value;
+            }else{
+                document.getElementById(this.id+'-val').innerHTML = this.value;
+            }
+        });
+    }
+	
+    document.getElementById('field-range-input').addEventListener('input',function(){
+        document.getElementById('field-range').value = this.value;
+    });
+	    
+    var startDate = document.getElementById("startDateLable");
+	var endDate = document.getElementById("endDateLable");	
+	document.getElementById("startDateBtn").addEventListener('tap', function() {
+		var dDate = new Date();
+		dDate.setFullYear(2017, 1, 20);
+		var minDate = new Date();
+		minDate.setFullYear(2010, 0, 1);
+		var maxDate = new Date();
+		maxDate.setFullYear(2019, 11, 31);
+		plus.nativeUI.pickDate(function(e) {
+			var d = e.date;
+			startDate.innerText = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+		}, function(e) {
+			startDate.innerText = "您没有选择日期";
+		}, {
+			title: "请选择日期",
+			date: dDate,
+			minDate: minDate,
+			maxDate: maxDate
+		});
+	})
+	
+	document.getElementById("endDateBtn").addEventListener('tap', function() {
+		var dDate = new Date();
+		dDate.setFullYear(2017, 1, 20);
+		var minDate = new Date();
+		minDate.setFullYear(2010, 0, 1);
+		var maxDate = new Date();
+		maxDate.setFullYear(2019, 11, 31);
+		plus.nativeUI.pickDate(function(e) {
+			var d = e.date;
+			endDate.innerText = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+		}, function(e) {
+			endDate.innerText = "您没有选择日期";
+		}, {
+			title: "请选择日期",
+			date: dDate,
+			minDate: minDate,
+			maxDate: maxDate
+		});
+	});
+	
+	//根据task_id从数据库中获取该任务的详细信息
+	function refreshTask(task_id){
+		//var url = 'http://192.168.16.42:8080/mybatis/user/test.do';
+		var url = 'http://192.168.16.114:8080/HelloWeb/seltask';
+
+		//发送数据
+		var data = {
+			tid: task_id,
+		};
+
+		//console.info("query task data for if of " + task_id);
+		mui.getJSON(url, data, callbackRefreshTask);
+	};
+	
+	//刷新任务界面调用成功响应的回调函数
+	function callbackRefreshTask(response) {
+		//console.info("refresh task"+JSON.stringify(response));
+		if(response.status == "0000"){
+			mui("#taskName")[0].value = response.task.tname;
+			mui("#userResult")[0].innerHTML = getUserNameByID(response.task.tmid);
+			mui("#taskDesc")[0].innerHTML = response.task.tdes;
+			mui("#taskNote")[0].innerHTML = response.task.tremark;
+			mui("#startDateLable")[0].innerHTML = response.task.tsttm;
+			mui("#endDateLable")[0].innerHTML = response.task.tfitm;
+			mui("#field-range-input")[0].value = parseFloat(response.task.tpct) * 100;
+			mui("#field-range")[0].value = parseFloat(response.task.tpct) * 100;
+		}else{
+			alert(response.status + " : " + response.message);
+		}
+	};
+	//
+	function updateTask(task_id){
+		var id = parseInt(task_id);
+		var name = mui("#taskName")[0].value;
+		var owner = mui("#userResult")[0].innerHTML;
+		var ownerId = parseInt(getUserIDByName(owner));
+		var desc = mui("#taskDesc")[0].value;
+		var note = mui("#taskNote")[0].value;
+		var startDate = mui("#startDateLable")[0].innerHTML;
+		var endDate = mui("#endDateLable")[0].innerHTML;
+		var progress = parseFloat(mui("#field-range-input")[0].value)/100;
+		
+		//var url = 'http://192.168.16.42:8080/mybatis/user/test.do';
+		var url = 'http://192.168.16.114:8080/HelloWeb/updtask';
+		//发送数据
+		var data = {
+			tid: id,
+			tname: name,
+			tdes: desc,
+			tmid: ownerId,
+			tremark: note,
+			tsttm: startDate,
+			tfitm: endDate,
+			tpct: progress,
+		};
+
+		//console.info("update task for id of " + task_id);
+		//console.info(JSON.stringify(data));
+		mui.getJSON(url, data, callbackUpdateTask);
+		//测试代码
+//		console.info("更新了任务的数据并且后台正确返回");
+//		var response = {"status":"0000","message":"查询任务成功","task":{"tdes":"高楼大厦a","tfitm":"2019-08-11","tid":9,"tmid":2,"tname":"画图a","tpct":0.48,"tremark":"备注信息","tsttm":"2017-02-03"}};
+//		callbackUpdateTask(response);
+	};
+	
+	//刷新任务界面调用成功响应的回调函数
+	function callbackUpdateTask(response) {
+		console.info("callbackUpdateTask" + JSON.stringify(response));
+		if(response.status == "0000"){
+			if(localStorage.getItem("task_adev_mode") == 'no'){
+				localStorage.setItem("task_adev_mode","edit");//是否有操作，no表示没有操作，new表示新建，edit表示编辑，view表示查看
+				localStorage.setItem("working_task_id",response.task.tid);
+				console.info("设置list页面更新标志task_adev = edit, task_id = " + response.task.tid);
+			}else{
+				console.info("标志已经是new或者edit，不用再设置");
+			}
+			localStorage.setItem("changed_task",JSON.stringify(response.task));
+		}else{
+			alert(response.status + " : " + response.message);
+		}
+	};
+	
+	//
+	function createTask(){
+		//
+		var name = mui("#taskName")[0].value;
+		var owner = mui("#userResult")[0].innerHTML;
+		var ownerId = parseInt(getUserIDByName(owner));
+		var desc = mui("#taskDesc")[0].value;
+		var note = mui("#taskNote")[0].value;
+		var startDate = mui("#startDateLable")[0].innerHTML;
+		var endDate = mui("#endDateLable")[0].innerHTML;
+		var progress = parseFloat(mui("#field-range-input")[0].value)/100;
+		
+		//var url = 'http://192.168.16.42:8080/mybatis/user/test.do';
+		var url = 'http://192.168.16.114:8080/HelloWeb/instask';
+		//发送数据
+		var data = {
+			tname: name,
+			tmid: ownerId,
+			tdes: desc,
+			tremark: note,
+			tsttm: startDate,
+			tfitm: endDate,
+			tpct: progress,
+		};
+
+		//console.info("create task for name of " + name);
+		//console.info(JSON.stringify(data));
+		mui.getJSON(url, data, callbackCreateTask);
+		//测试代码
+//		console.info("新建了任务的数据并且后台正确返回");
+//		var response = {"status":"0000","message":"查询任务成功","task":{"tdes":"高楼大厦","tfitm":"2019-08-11","tid":9,"tmid":2,"tname":"画图","tpct":0.42,"tremark":"备注信息","tsttm":"2017-02-03"}};
+//		callbackCreateTask(response);
+	};
+	
+	//刷新任务界面调用成功响应的回调函数
+	function callbackCreateTask(response) {
+		//console.info(JSON.stringify(response));
+		if(response.status == "0000"){
+			var self = plus.webview.currentWebview();
+			self.task_id = response.task.tid;
+			localStorage.setItem("task_adev_mode","new");//是否有操作，no表示没有操作，new表示新建，edit表示编辑，view表示查看
+			localStorage.setItem("working_task_id",response.task.tid);
+			localStorage.setItem("changed_task",JSON.stringify(response.task));
+			console.info("设置list页面更新标志task_adev = new, task_id = " + response.task.tid);
+		}else{
+			alert(response.status + " : " + response.message);
+		}
+	};
+		
+	function changeMode(currentMode){
+		console.info("当前状态是:" + currentMode);
+		//v表示是查看任务信息
+		if(currentMode == "v"){
+			mui("#committask")[0].innerHTML = "编辑";
+			mui(".edit-aera").each(function(){
+				this.setAttribute("disabled","true");
+			})
+		}
+		//n表示是新建任务
+		if(currentMode == "n" || currentMode == "e"){
+			mui("#committask")[0].innerHTML = "提交";
+			mui(".edit-aera").each(function(){
+				this.removeAttribute("disabled");
+			})
+		}
+	}
+
+	//
+	function getUserNameByID(id) {
+		var jsonUsers = JSON.parse(localStorage.getItem("users"));
+		var rValue = "";	
+		mui.each(jsonUsers,function(index, item){
+			if(item.id == id){
+				rValue = item.name;
+				return false;
+			}
+		});
+		
+		return rValue;
+	};
+	
+	function getUserIDByName(name) {
+		var jsonUsers = JSON.parse(localStorage.getItem("users"));
+		var rValue = "";	
+		mui.each(jsonUsers,function(index, item){
+			if(item.name == name){
+				rValue = item.id;
+				return false;
+			}
+		});
+		
+		return rValue;
+	};
+</script>
